@@ -1,0 +1,158 @@
+// Define a fonte de dados e a URL do banco de dados a partir das variáveis de ambiente
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Configura o gerador do Prisma Client
+// A linha 'output' foi adicionada para garantir que o client seja gerado na pasta correta
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+// ===============================================
+//                  ENUMS
+// ===============================================
+
+enum EnrollmentStatus {
+  ENROLLED
+  PASSED
+  FAILED
+}
+
+enum PromotionStatus {
+  PENDING
+  APPROVED
+  DENIED
+}
+
+// ===============================================
+//                  MODELS
+// ===============================================
+
+model GuildConfig {
+  guild_id                     String  @id
+  recruitment_channel_id       String?
+  analysis_channel_id          String?
+  recruit_role_id              String?
+  recruiter_role_id            String?
+  recruitment_embed_title      String?
+  recruitment_embed_description String?
+  recruitment_embed_image_url  String?
+  uniform_showcase_channel_id  String?
+  promotions_channel_id        String?
+  promotion_request_channel_id String?
+  promotion_approval_role_id   String?
+  reports_channel_id           String?
+  theme_config_password        String?
+  active_theme_id              Int?
+  themes                       GarrisonTheme[]
+
+  @@map("guild_configs")
+}
+
+model GarrisonTheme {
+  id                      Int     @id @default(autoincrement())
+  name                    String
+  is_active               Boolean @default(false)
+  bot_nickname            String?
+  embed_color             String?
+  recruitment_banner_url  String?
+  main_panel_banner_url   String?
+  guild_id                String
+  guild                   GuildConfig @relation(fields: [guild_id], references: [guild_id])
+
+  @@unique([guild_id, name])
+  @@map("garrison_themes")
+}
+
+model Officer {
+  db_id                Int                @id @default(autoincrement())
+  discord_id           String
+  guild_id             String
+  name_fivem           String
+  id_fivem             String
+  rank                 String
+  join_date            DateTime           @default(now())
+  warnings             Warning[]
+  enrollments          CourseEnrollment[]
+  led_reports          ActionReport[]     @relation("LeadReports")
+  participations       ActionReport[]     @relation("ParticipantReports")
+  promotion_requests   PromotionRequest[]
+
+  @@unique([discord_id, guild_id])
+  @@map("officers")
+}
+
+model Warning {
+  id            Int      @id @default(autoincrement())
+  reason        String
+  created_at    DateTime @default(now())
+  admin_id      String
+  officer_db_id Int
+  officer       Officer  @relation(fields: [officer_db_id], references: [db_id], onDelete: Cascade)
+
+  @@map("warnings")
+}
+
+model Course {
+  id          Int                @id @default(autoincrement())
+  name        String
+  description String?
+  guild_id    String
+  enrollments CourseEnrollment[]
+
+  @@map("courses")
+}
+
+model CourseEnrollment {
+  id            Int              @id @default(autoincrement())
+  status        EnrollmentStatus @default(ENROLLED)
+  officer_db_id Int
+  officer       Officer          @relation(fields: [officer_db_id], references: [db_id], onDelete: Cascade)
+  course_id     Int
+  course        Course           @relation(fields: [course_id], references: [id], onDelete: Cascade)
+
+  @@unique([officer_db_id, course_id])
+  @@map("course_enrollments")
+}
+
+model PromotionRequest {
+  id              Int             @id @default(autoincrement())
+  current_rank    String
+  requested_rank  String
+  reason          String?
+  status          PromotionStatus @default(PENDING)
+  reviewer_id     String?
+  created_at      DateTime        @default(now())
+  reviewed_at     DateTime?
+  guild_id        String
+  requester_db_id Int
+  requester       Officer         @relation(fields: [requester_db_id], references: [db_id], onDelete: Cascade)
+
+  @@map("promotion_requests")
+}
+
+model UniformKit {
+  id            Int    @id @default(autoincrement())
+  name          String
+  codes         String
+  guild_id      String
+  display_order Int    @default(0)
+
+  @@map("uniform_kits")
+}
+
+model ActionReport {
+  id                 Int      @id @default(autoincrement())
+  summary            String?
+  thread_id          String   @unique
+  created_at         DateTime @default(now())
+  guild_id           String
+  lead_officer_db_id Int
+  lead_officer       Officer  @relation("LeadReports", fields: [lead_officer_db_id], references: [db_id], onDelete: Cascade)
+  participants       Officer[]  @relation("ParticipantReports")
+
+  @@map("action_reports")
+}
