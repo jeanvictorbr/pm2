@@ -15,13 +15,19 @@ function createMainDashboard() {
                 .setCustomId('open_modules_menu')
                 .setLabel('Módulos')
                 .setEmoji('⚙️')
-                .setStyle(ButtonStyle.Secondary)
+                .setStyle(ButtonStyle.Secondary),
+            // BOTÃO ADICIONADO AQUI
+            new ButtonBuilder()
+                .setCustomId('set_garrison_theme')
+                .setLabel('Definir Guarnição')
+                .setEmoji('🎨')
+                .setStyle(ButtonStyle.Primary)
         );
 
     return { embeds: [embed], components: [row] };
 }
 
-// Função que cria o Menu de Módulos
+// Função que cria o Menu de Módulos (sem alterações)
 function createModulesMenu() {
     const embed = new EmbedBuilder()
         .setColor(0x2b2d31)

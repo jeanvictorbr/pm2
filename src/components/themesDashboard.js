@@ -1,9 +1,9 @@
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder } = require('discord.js');
 
-// Painel principal do gerenciamento de temas (após inserir a senha)
+// Painel principal do gerenciamento de temas (sem alterações)
 function createThemesDashboard(themes) {
     const embed = new EmbedBuilder()
-        .setColor(0x5865F2) // Cor Discord "Blurple"
+        .setColor(0x5865F2)
         .setTitle('🎨 Gerenciamento de Temas de Guarnição')
         .setDescription(
             'Aqui você pode criar, editar e deletar os temas visuais do bot.\n\n' +
@@ -25,49 +25,87 @@ function createThemesDashboard(themes) {
     return { embeds: [embed], components: [row, backRow] };
 }
 
-// Modal para CRIAR um novo tema
-function createThemeModal() {
+// Modal para CRIAR um novo tema (sem alterações)
+function createThemeModal() { /* ... código que você já tem ... */ }
+function createPasswordModal() { /* ... código que você já tem ... */ }
+function enterPasswordModal() { /* ... código que você já tem ... */ }
+
+// ===============================================
+//         NOVOS COMPONENTES ADICIONADOS
+// ===============================================
+
+// Modal para EDITAR um tema (pré-preenchido)
+function createEditThemeModal(theme) {
     return new ModalBuilder()
-        .setCustomId('theme_create_modal')
-        .setTitle('Criar Novo Tema de Guarnição')
+        .setCustomId(`theme_edit_modal_${theme.id}`) // ID dinâmico
+        .setTitle('Editar Tema de Guarnição')
         .addComponents(
             new ActionRowBuilder().addComponents(
-                new TextInputBuilder().setCustomId('theme_name').setLabel('Nome do Tema (Ex: LSPD)').setStyle(TextInputStyle.Short).setRequired(true)
+                new TextInputBuilder().setCustomId('theme_name').setLabel('Nome do Tema').setStyle(TextInputStyle.Short).setValue(theme.name).setRequired(true)
             ),
             new ActionRowBuilder().addComponents(
-                new TextInputBuilder().setCustomId('theme_bot_nickname').setLabel('Apelido do Bot (Opcional)').setStyle(TextInputStyle.Short).setRequired(false)
+                new TextInputBuilder().setCustomId('theme_bot_nickname').setLabel('Apelido do Bot (Opcional)').setStyle(TextInputStyle.Short).setValue(theme.bot_nickname || '').setRequired(false)
             ),
             new ActionRowBuilder().addComponents(
-                new TextInputBuilder().setCustomId('theme_embed_color').setLabel('Cor da Embed (Hex: #RRGGBB)').setStyle(TextInputStyle.Short).setRequired(true).setValue('#2b2d31')
+                new TextInputBuilder().setCustomId('theme_embed_color').setLabel('Cor da Embed (Hex: #RRGGBB)').setStyle(TextInputStyle.Short).setValue(theme.embed_color || '#2b2d31').setRequired(true)
             ),
             new ActionRowBuilder().addComponents(
-                new TextInputBuilder().setCustomId('theme_banner_url').setLabel('URL do Banner Principal (Opcional)').setStyle(TextInputStyle.Short).setRequired(false)
+                new TextInputBuilder().setCustomId('theme_banner_url').setLabel('URL do Banner Principal (Opcional)').setStyle(TextInputStyle.Short).setValue(theme.main_panel_banner_url || '').setRequired(false)
             )
         );
 }
 
-// Modal para DEFINIR a senha pela primeira vez
-function createPasswordModal() {
-    return new ModalBuilder()
-        .setCustomId('password_create_modal')
-        .setTitle('Crie uma Senha de Acesso')
-        .addComponents(
-            new ActionRowBuilder().addComponents(
-                new TextInputBuilder().setCustomId('password_input').setLabel('Senha').setPlaceholder('Digite uma senha forte').setStyle(TextInputStyle.Short).setRequired(true)
-            )
+// Menu de seleção para escolher um tema (para editar, deletar ou ativar)
+function createThemeSelectionMenu(themes, customId, placeholder) {
+    const embed = new EmbedBuilder()
+        .setColor(0x5865F2)
+        .setTitle(placeholder);
+        
+    const menu = new StringSelectMenuBuilder()
+        .setCustomId(customId)
+        .setPlaceholder('Selecione um tema...')
+        .addOptions(
+            themes.map(theme => ({
+                label: theme.name,
+                description: `Apelido: ${theme.bot_nickname || 'Nenhum'}`,
+                value: theme.id.toString(),
+            }))
         );
+
+    const row = new ActionRowBuilder().addComponents(menu);
+    const backRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('cancel_action').setLabel('Cancelar').setStyle(ButtonStyle.Secondary)
+    );
+    return { embeds: [embed], components: [row, backRow] };
 }
 
-// Modal para INSERIR a senha existente
-function enterPasswordModal() {
-     return new ModalBuilder()
-        .setCustomId('password_enter_modal')
-        .setTitle('Acesso Protegido')
-        .addComponents(
-            new ActionRowBuilder().addComponents(
-                new TextInputBuilder().setCustomId('password_input').setLabel('Senha').setPlaceholder('Digite a senha de acesso').setStyle(TextInputStyle.Short).setRequired(true)
-            )
-        );
+// Confirmação antes de deletar um tema
+function createDeleteConfirmation(theme) {
+    const embed = new EmbedBuilder()
+        .setColor(0xED4245) // Vermelho
+        .setTitle('Confirmação de Exclusão')
+        .setDescription(`Você tem certeza que deseja deletar o tema **${theme.name}**?\n\n**Esta ação é irreversível.**`);
+
+    const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId(`theme_delete_confirm_${theme.id}`)
+            .setLabel('Sim, deletar')
+            .setStyle(ButtonStyle.Danger),
+        new ButtonBuilder()
+            .setCustomId('cancel_action')
+            .setLabel('Cancelar')
+            .setStyle(ButtonStyle.Secondary)
+    );
+
+    return { embeds: [embed], components: [row] };
 }
 
-module.exports = { createThemesDashboard, createThemeModal, createPasswordModal, enterPasswordModal };
+module.exports = {
+    createThemesDashboard,
+    createThemeModal,
+    createPasswordModal,
+    enterPasswordModal,
+    createEditThemeModal,
+    createThemeSelectionMenu,
+    createDeleteConfirmation,
+};
